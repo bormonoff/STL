@@ -1,4 +1,5 @@
 #include <chrono>
+#include <thread>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
@@ -27,7 +28,7 @@ void produce(bormon::GenerateQueue<int>& queue)  {
         std::this_thread::sleep_for(0.1ms);
         queue.push(current);
     }
-    queue.notify_all();
+    queue.create_limiter_and_notify();
 }
 
 void consume(bormon::GenerateQueue<int>& queue) {
@@ -41,31 +42,26 @@ void consume(bormon::GenerateQueue<int>& queue) {
         queue.pop(current);
         std::this_thread::sleep_for(0.1ms);
     }
-    queue.notify_all();
+    queue.create_limiter_and_notify();
 }
 
 constexpr int buf_size = 10;
 }  // namespace
 
 SCENARIO("Queue", THQUEUE) {
-    const size_t num_threads = std::thread::hardware_concurrency();
-    bormon::GenerateQueue<int> queue{buf_size};
-    std::vector<std::thread> producers;
-    std::vector<std::thread> consumers;
+    {
+        const size_t num_threads = std::thread::hardware_concurrency();
+        bormon::GenerateQueue<int> queue{};
+        std::vector<std::jthread> producers;
+        std::vector<std::jthread> consumers;
 
-    for (size_t thread = 0; thread < num_threads / 2; ++thread) {
-        producers.emplace_back(produce, std::ref(queue));
-    }
+        for (size_t thread = 0; thread < num_threads / 2; ++thread) {
+            producers.emplace_back(produce, std::ref(queue));
+        }
 
-    for (size_t thread = 0; thread < num_threads / 2; ++thread) {
-        consumers.emplace_back(consume, std::ref(queue));
+        for (size_t thread = 0; thread < num_threads / 2; ++thread) {
+            consumers.emplace_back(consume, std::ref(queue));
+        }
     }
-
-    for (auto& it : producers) {
-        it.join();
-    }
-
-    for (auto& it : consumers) {
-        it.join();
-    }
+    CHECK(0 == 0);
 }

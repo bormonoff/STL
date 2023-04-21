@@ -10,46 +10,43 @@
 
 namespace bormon {
 
+template <typename Type>
+Type limiter();
+
+template <>
+int limiter<int>() { return -1; }
+
 template<typename Type>
 class GenerateQueue {
 public:
-    explicit GenerateQueue(int size) 
-        : buffer_(size) {
-    }
+    GenerateQueue() = default;
 
     void push(Type obj) {
         std::unique_lock<std::mutex> lock{mutex_};
-        cond_var_prod_.wait(lock, [this]() { return !full() || finished(); });
-        ++current_;
-        buffer_.push_back(std::move(obj));
+        buffer_.push(std::move(obj));
         cond_var_cons_.notify_one();
     }
 
     void pop(Type& obj) {
         std::unique_lock<std::mutex> lock{mutex_};
-        cond_var_cons_.wait(lock, [this]() { return !empty() || finished(); });
-        obj = buffer_[current_];
-        --current_;
-        cond_var_prod_.notify_one();
+        cond_var_cons_.wait(lock, [this]() { return !buffer_.empty(); });
+        Type data = std::move(buffer_.front());
+        if (data == limiter<Type>()) { return; }
+        obj = std::move(data);
+        buffer_.pop();
     }
     
-    void notify_all() {
-        produced_ = true;
+    void create_limiter_and_notify() {
+        std::unique_lock<std::mutex> lock{mutex_};
+        buffer_.push(limiter<Type>());
         cond_var_cons_.notify_all();
-        cond_var_prod_.notify_all();
     }
 
 private:
-    bool full() { return current_ >= buffer_.size() - 1; }
-    bool empty() { return current_ <= 0; }
-    bool finished() { return produced_; }
-
-    std::vector<Type> buffer_;
+    std::queue<Type> buffer_;
     int current_{0};
-    bool produced_{false};
 
     std::mutex mutex_;
     std::condition_variable cond_var_cons_;
-    std::condition_variable cond_var_prod_;
 };
 }  // namespace bormon
