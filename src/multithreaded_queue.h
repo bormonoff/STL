@@ -13,13 +13,35 @@ namespace bormon {
 template<typename Type>
 class GenerateQueue {
 public:
-    void push(Type obj) {}
-    void pop() {}
+    explicit GenerateQueue(int size) 
+        : buffer_(size) {
+    }
+
+    void push(Type obj) {
+        std::unique_lock<std::mutex> lock{mutex_};
+        cond_var_prod_.wait(lock, [this]() { return !full(); });
+        ++current_;
+        buffer_.push_back(std::move(obj));
+        cond_var_cons_.notify_one();
+    }
+
+    void pop(Type& obj) {
+        std::unique_lock<std::mutex> lock{mutex_};
+        cond_var_cons_.wait(lock, [this]() { return !empty(); });
+        obj = buffer_[current_];
+        --current_;
+        cond_var_prod_.notify_one();
+    }
 
 private:
-    std::queue<Type> buffer_;
+    bool full() { return current_ >= buffer_.size() - 1; }
+    bool empty() { return current_ <= 0; }
+
+    std::vector<Type> buffer_;
+    int current_{0};
 
     std::mutex mutex_;
-    std::condition_variable cond_var_;
+    std::condition_variable cond_var_cons_;
+    std::condition_variable cond_var_prod_;
 };
 }  // namespace bormon

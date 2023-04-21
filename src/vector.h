@@ -105,7 +105,7 @@ public:
     
     void reserve(size_t size) {
         if (size <= capacity_) { return; } 
-        Type* newptr = Alloc_traits::allocate(allocator_, size); 
+        Type* newptr = Alloc_traits::allocate(allocator_, capacity_); 
         size_t i{0};
         try {
             for(; i < size; ++i) {
@@ -114,8 +114,8 @@ public:
         } catch(...) {
             for(int j = 0; j < i; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
+                Alloc_traits::deallocate(allocator_, newptr, i);
             }
-            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         destroy();
@@ -138,8 +138,8 @@ public:
         } catch(...) {
             for(int j = 0; j < max; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
+                Alloc_traits::deallocate(allocator_, newptr, i);
             }
-            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         if (size < size_) {
@@ -170,8 +170,8 @@ public:
         } catch(...) {
             for(int j = 0; j < i; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
+                Alloc_traits::deallocate(allocator_, newptr, i);
             }
-            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         destroy();
