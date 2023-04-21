@@ -19,7 +19,7 @@ public:
 
     void push(Type obj) {
         std::unique_lock<std::mutex> lock{mutex_};
-        cond_var_prod_.wait(lock, [this]() { return !full(); });
+        cond_var_prod_.wait(lock, [this]() { return !full() || finished(); });
         ++current_;
         buffer_.push_back(std::move(obj));
         cond_var_cons_.notify_one();
@@ -27,18 +27,26 @@ public:
 
     void pop(Type& obj) {
         std::unique_lock<std::mutex> lock{mutex_};
-        cond_var_cons_.wait(lock, [this]() { return !empty(); });
+        cond_var_cons_.wait(lock, [this]() { return !empty() || finished(); });
         obj = buffer_[current_];
         --current_;
         cond_var_prod_.notify_one();
+    }
+    
+    void notify_all() {
+        produced_ = true;
+        cond_var_cons_.notify_all();
+        cond_var_prod_.notify_all();
     }
 
 private:
     bool full() { return current_ >= buffer_.size() - 1; }
     bool empty() { return current_ <= 0; }
+    bool finished() { return produced_; }
 
     std::vector<Type> buffer_;
     int current_{0};
+    bool produced_{false};
 
     std::mutex mutex_;
     std::condition_variable cond_var_cons_;

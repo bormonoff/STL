@@ -27,6 +27,7 @@ void produce(bormon::GenerateQueue<int>& queue)  {
         std::this_thread::sleep_for(0.1ms);
         queue.push(current);
     }
+    queue.notify_all();
 }
 
 void consume(bormon::GenerateQueue<int>& queue) {
@@ -40,6 +41,7 @@ void consume(bormon::GenerateQueue<int>& queue) {
         queue.pop(current);
         std::this_thread::sleep_for(0.1ms);
     }
+    queue.notify_all();
 }
 
 constexpr int buf_size = 10;
