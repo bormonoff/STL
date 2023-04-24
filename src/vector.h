@@ -114,8 +114,8 @@ public:
         } catch(...) {
             for(int j = 0; j < i; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
-                Alloc_traits::deallocate(allocator_, newptr, i);
             }
+            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         destroy();
@@ -138,8 +138,8 @@ public:
         } catch(...) {
             for(int j = 0; j < max; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
-                Alloc_traits::deallocate(allocator_, newptr, i);
             }
+            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         if (size < size_) {
@@ -170,8 +170,8 @@ public:
         } catch(...) {
             for(int j = 0; j < i; ++j) {
                 Alloc_traits::destroy(allocator_, newptr[j]);
-                Alloc_traits::deallocate(allocator_, newptr, i);
             }
+            Alloc_traits::deallocate(allocator_, newptr, i);
             return;
         }
         destroy();
